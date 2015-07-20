@@ -20,6 +20,9 @@ import android.widget.Toast;
 import com.parse.ParseUser;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -34,6 +37,8 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
 
     public static final int MEDIA_TYPE_IMAGE = 4;
     public static final int MEDIA_TYPE_VIDEO = 5;
+    public static final int FILE_SIZE_LIMIT = 1024*1024*10; //10 MB
+
 
     protected Uri mMediaUri;
 
@@ -54,12 +59,33 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
                         startActivityForResult(takePhotoIntent, TAKE_PHOTO_REQUEST);
                     }
                         break;
-                        case 1: //Take video
-                            break;
-                        case 2: //Choose Picture
-                            break;
-                        case 3: //Choose Video
-                            break;
+                case 1: //Take video
+                    Intent videoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+                    mMediaUri = getOutputMediaFileUri(MEDIA_TYPE_VIDEO);
+                    if (mMediaUri == null) {
+                        //display an error
+                        Toast.makeText(MainActivity.this,
+                                R.string.error_external_storage,
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        videoIntent.putExtra(MediaStore.EXTRA_OUTPUT, mMediaUri);
+                        videoIntent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 10);
+                        videoIntent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
+                        startActivityForResult(videoIntent, TAKE_VIDEO_REQUEST);
+                    }
+                    break;
+                case 2: //Choose Picture
+                    Intent choosePhotoIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                    choosePhotoIntent.setType("images/*");
+                    startActivityForResult(choosePhotoIntent, PICK_PHOTO_REQUEST);
+                    break;
+                case 3: //Choose Video
+                    Intent chooseVideoIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                    chooseVideoIntent.setType("video/*");
+                    Toast.makeText(MainActivity.this, R.string.video_file_size_warning,
+                            Toast.LENGTH_LONG).show();
+                    startActivityForResult(chooseVideoIntent, PICK_VIDEO_REQUEST);
+                    break;
                     }
 
         }
@@ -175,6 +201,60 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
                     actionBar.newTab()
                             .setText(mSectionsPagerAdapter.getPageTitle(i))
                             .setTabListener(this));
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+
+            if (requestCode == PICK_PHOTO_REQUEST || requestCode == PICK_VIDEO_REQUEST) {
+                if (data == null) {
+                    Toast.makeText(MainActivity.this, R.string.general_error, Toast.LENGTH_LONG).show();
+                }
+                else {
+                    mMediaUri = data.getData();
+                }
+                if (requestCode == PICK_VIDEO_REQUEST) {
+                    int fileSize = 0;
+                    InputStream inputStream = null;
+                    try {
+                        inputStream = getContentResolver().openInputStream(mMediaUri);
+                        fileSize = inputStream.available();
+                    } catch (FileNotFoundException e) {
+                        Toast.makeText(MainActivity.this, R.string.error_opening_file,
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    } catch (IOException e) {
+                        Toast.makeText(MainActivity.this, R.string.error_opening_file,
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    finally {
+                        try {
+                            inputStream.close();
+                        } catch (IOException e) {
+                            /* Intentionally blank */
+                        }
+                    }
+                    if (fileSize >= FILE_SIZE_LIMIT) {
+                        Toast.makeText(MainActivity.this, R.string.error_file_size_too_large,
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+            }
+            else {
+                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                mediaScanIntent.setData(mMediaUri);
+                sendBroadcast(mediaScanIntent);
+            }
+
+        }
+        else if(resultCode != RESULT_CANCELED) {
+            Toast.makeText(MainActivity.this, R.string.general_error, Toast.LENGTH_LONG).show();
         }
     }
 
