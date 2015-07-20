@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
 
     protected Uri mMediaUri;
 
+
     protected DialogInterface.OnClickListener mDialogListener = new DialogInterface.OnClickListener() {
         @Override
         public void onClick(DialogInterface dialog, int which) {
@@ -204,6 +205,8 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
         }
     }
 
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -252,6 +255,18 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
                 sendBroadcast(mediaScanIntent);
             }
 
+            Intent recipientsIntent = new Intent(this, RecipientsActivity.class);
+            recipientsIntent.setData(mMediaUri);
+            String fileType;
+            if(requestCode == PICK_PHOTO_REQUEST || requestCode == TAKE_PHOTO_REQUEST) {
+                fileType = ParseConstants.TYPE_IMAGE;
+            }
+            else {
+                fileType = ParseConstants.TYPE_VIDEO;
+            }
+            recipientsIntent.putExtra(ParseConstants.KEY_FILE_TYPE, fileType);
+            startActivity(recipientsIntent);
+
         }
         else if(resultCode != RESULT_CANCELED) {
             Toast.makeText(MainActivity.this, R.string.general_error, Toast.LENGTH_LONG).show();
@@ -285,15 +300,18 @@ public class MainActivity extends AppCompatActivity implements ActionBar.TabList
             case R.id.action_logout:
                 ParseUser.logOut();
                 navigateToLogin();
+                break;
 
             case R.id.action_edit_friends:
                 Intent intent = new Intent(this, EditFriendsActivity.class);
                 startActivity(intent);
+                break;
             case R.id.action_camera:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setItems(R.array.camera_choices, mDialogListener);
                 AlertDialog dialog = builder.create();
                 dialog.show();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
