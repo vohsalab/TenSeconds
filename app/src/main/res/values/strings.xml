@@ -46,4 +46,5 @@
     <string name="success_message">Message sent!</string>
     <string name="error_sending_message">There was an error sending your message. Please try again.</string>
     <string name="title_activity_view_image">Ten Seconds</string>
+    <string name="push_message">You have a new message from %s!</string>
 </resources>
